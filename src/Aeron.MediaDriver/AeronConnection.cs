@@ -5,13 +5,13 @@ using Adaptive.Aeron;
 using Adaptive.Aeron.Exceptions;
 using Adaptive.Agrona.Concurrent;
 using Aeron.MediaDriver.Native;
-using log4net;
+using ZeroLog;
 
 namespace Aeron.MediaDriver
 {
     public class AeronConnection : CriticalFinalizerObject, IDisposable
     {
-        private static readonly ILog _log = LogManager.GetLogger(typeof(AeronConnection));
+        private static readonly Log _log = LogManager.GetLogger(typeof(AeronConnection));
 
         public readonly Adaptive.Aeron.Aeron Aeron;
         private readonly Driver _driver;

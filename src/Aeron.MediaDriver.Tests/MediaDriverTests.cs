@@ -5,6 +5,7 @@ using Adaptive.Agrona.Concurrent;
 using Aeron.MediaDriver.Native;
 using NUnit.Framework;
 using static Aeron.MediaDriver.Tests.DriverConfigUtil;
+using Assert = NUnit.Framework.Legacy.ClassicAssert;
 
 namespace Aeron.MediaDriver.Tests
 {

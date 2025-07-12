@@ -5,14 +5,14 @@ using System.Runtime.CompilerServices;
 using System.Runtime.ConstrainedExecution;
 using System.Runtime.InteropServices;
 using System.Threading;
-using log4net;
+using ZeroLog;
 using static Aeron.MediaDriver.Native.Interop;
 
 namespace Aeron.MediaDriver.Native
 {
     public class Driver : CriticalFinalizerObject, IDisposable
     {
-        private static readonly ILog _log = LogManager.GetLogger(typeof(Driver));
+        private static readonly Log _log = LogManager.GetLogger(typeof(Driver));
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         public delegate void LogFuncDelegate([MarshalAs(UnmanagedType.LPStr)] string pChar);
@@ -150,7 +150,7 @@ namespace Aeron.MediaDriver.Native
             if (AeronDriverContextSetThreadingMode(_ctx, config.ThreadingMode) < 0)
                 throw new MediaDriverException($"AeronDriverContextSetDir: ({AeronErrcode()}) {AeronErrmsg()}");
 
-            _log.Info($"Threading mode: {AeronDriverContextGetThreadingMode(_ctx):G}");
+            _log.Info($"Threading mode: {(byte)AeronDriverContextGetThreadingMode(_ctx):G}");
 
             if (AeronDriverContextSetSenderIdleStrategy(_ctx, config.SenderIdleStrategy.Name) < 0)
                 throw new MediaDriverException(

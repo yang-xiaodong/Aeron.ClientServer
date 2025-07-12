@@ -3,13 +3,13 @@ using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using Adaptive.Aeron;
-using log4net;
+using ZeroLog;
 
 namespace Aeron.MediaDriver
 {
     public static class AeronUtils
     {
-        private static readonly ILog _log = LogManager.GetLogger(typeof(AeronUtils));
+        private static readonly Log _log = LogManager.GetLogger(typeof(AeronUtils));
 
         public const byte CurrentProtocolVersion = 1;
 

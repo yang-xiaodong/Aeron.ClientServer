@@ -12,7 +12,7 @@ using Adaptive.Aeron.LogBuffer;
 using Adaptive.Agrona;
 using Adaptive.Agrona.Concurrent;
 using Aeron.MediaDriver.Native;
-using log4net;
+using ZeroLog;
 using ProtoBuf;
 
 namespace Aeron.MediaDriver
@@ -24,7 +24,7 @@ namespace Aeron.MediaDriver
         private const int _frameCountLimit = 16384;
         internal const int ServerStreamId = 1;
 
-        private static readonly ILog _log = LogManager.GetLogger(typeof(AeronServer));
+        private static readonly Log _log = LogManager.GetLogger(typeof(AeronServer));
 
         private readonly DriverConfig _config;
         private readonly IIdleStrategy _publicationIdleStrategy;
@@ -112,7 +112,7 @@ namespace Aeron.MediaDriver
         {
             if (_clientSessions.TryRemove(publicationSessionId, out var session))
             {
-                _log.Info($"Disconnected client: {session}");
+                _log.Info($"Disconnected client: {session.ToString()}");
                 ClientDisconnected?.Invoke(session.ToIdentity());
 
                 // re-entry is forbidden from callback
@@ -127,7 +127,8 @@ namespace Aeron.MediaDriver
 
             _pollThread = new Thread(PollThread)
             {
-                IsBackground = true, Name = "AeronServer Poll Thread"
+                IsBackground = true,
+                Name = "AeronServer Poll Thread"
             };
             _pollThread.Start();
 
@@ -150,7 +151,7 @@ namespace Aeron.MediaDriver
             if (!_isRunning)
                 return;
 
-            var reservedValue = (AeronReservedValue) header.ReservedValue;
+            var reservedValue = (AeronReservedValue)header.ReservedValue;
 
             if (reservedValue.ProtocolVersion != AeronUtils.CurrentProtocolVersion)
             {
@@ -167,7 +168,7 @@ namespace Aeron.MediaDriver
 
         private unsafe void ConnectionHandler(IDirectBuffer buffer, int offset, int length, Header header)
         {
-            var reservedValue = (AeronReservedValue) header.ReservedValue;
+            var reservedValue = (AeronReservedValue)header.ReservedValue;
             var messageType = reservedValue.MessageType;
 
             if (messageType == AeronMessageType.Connected)
@@ -179,21 +180,21 @@ namespace Aeron.MediaDriver
                 }
 
                 var handshake = Serializer.DeserializeWithLengthPrefix<AeronHandshakeRequest>(
-                    new UnmanagedMemoryStream((byte*) buffer.BufferPointer + offset, length), PrefixStyle.Base128);
+                    new UnmanagedMemoryStream((byte*)buffer.BufferPointer + offset, length), PrefixStyle.Base128);
 
                 var publication = _connection.Aeron.AddPublication(handshake.Channel, handshake.StreamId);
                 var session = new ClientSession(this, publication, image);
 
                 if (TryAddSession(session))
                 {
-                    _log.Info($"New client session: {session}");
+                    _log.Info($"New client session: {session.ToString()}");
 
                     // Do not block the polling thread waiting for the other side to connect
                     Task.Run(() => InitializeSession(session));
                 }
                 else
                 {
-                    _log.Warn($"Duplicate client session: {session}");
+                    _log.Warn($"Duplicate client session: {session.ToString()}");
                     session.Dispose();
                 }
             }
@@ -216,7 +217,7 @@ namespace Aeron.MediaDriver
                 while (true)
                 {
                     var errorCode = session.Publication.Offer(session.Buffer, 0, 0,
-                        (buffer, offset, length) => (long) new AeronReservedValue(AeronUtils.CurrentProtocolVersion,
+                        (buffer, offset, length) => (long)new AeronReservedValue(AeronUtils.CurrentProtocolVersion,
                             AeronMessageType.Connected, session.Publication.SessionId));
 
                     if (errorCode == Publication.NOT_CONNECTED)
@@ -225,7 +226,7 @@ namespace Aeron.MediaDriver
 
                         if (stopwatch.Elapsed > TimeSpan.FromSeconds(30))
                             throw new InvalidOperationException(
-                                $"Timed out while waiting to send handshake to {session}");
+                                $"Timed out while waiting to send handshake to {session.ToString()}");
 
                         spinWait.SpinOnce();
                         continue;
@@ -242,17 +243,17 @@ namespace Aeron.MediaDriver
                         continue;
                     }
 
-                    throw new InvalidOperationException($"Failed to send handshake to {session}");
+                    throw new InvalidOperationException($"Failed to send handshake to {session.ToString()}");
                 }
 
                 session.Buffer.Release();
 
-                _log.Info($"Connected client: {session}");
+                _log.Info($"Connected client: {session.ToString()}");
                 ClientConnected?.Invoke(session.ToIdentity());
             }
             catch (Exception ex)
             {
-                _log.Error($"Session initialization failed for {session}: {ex}");
+                _log.Error($"Session initialization failed for {session.ToString()}", ex);
                 _clientSessions.TryRemove(session.Publication.SessionId, out _);
                 session.Dispose();
             }
@@ -264,7 +265,7 @@ namespace Aeron.MediaDriver
             if (_clientSessions.ContainsKey(publicationSessionId))
             {
                 MessageReceived?.Invoke(publicationSessionId,
-                    new ReadOnlySpan<byte>((byte*) buffer.BufferPointer + offset, length));
+                    new ReadOnlySpan<byte>((byte*)buffer.BufferPointer + offset, length));
             }
             else
             {
@@ -291,12 +292,12 @@ namespace Aeron.MediaDriver
                     var session = kvp.Value;
                     try
                     {
-                        _log.Info($"Disconnected client due to unhandled error: {session}");
+                        _log.Info($"Disconnected client due to unhandled error: {session.ToString()}");
                         ClientDisconnected?.Invoke(session.ToIdentity());
                     }
                     catch (Exception ex)
                     {
-                        _log.Error(ex);
+                        _log.Error(ex.Message, ex);
                     }
                 }
             }
@@ -330,7 +331,7 @@ namespace Aeron.MediaDriver
                         var result = AeronUtils.InterpretPublicationOfferResult(
                             session.Publication.Offer(session.Buffer, 0, 0,
                                 (buffer, offset, length) =>
-                                    (long) new AeronReservedValue(AeronUtils.CurrentProtocolVersion,
+                                    (long)new AeronReservedValue(AeronUtils.CurrentProtocolVersion,
                                         AeronMessageType.Disconnected, session.Publication.SessionId)));
 
                         if (result == AeronResultType.ShouldRetry)
@@ -374,7 +375,7 @@ namespace Aeron.MediaDriver
                 Image = image;
                 Publication = publication;
 
-                var dataReservedValue = (long) new AeronReservedValue(AeronUtils.CurrentProtocolVersion,
+                var dataReservedValue = (long)new AeronReservedValue(AeronUtils.CurrentProtocolVersion,
                     AeronMessageType.Data, Publication.SessionId);
                 _dataReservedValueSupplier = (buffer, offset, length) => dataReservedValue;
             }

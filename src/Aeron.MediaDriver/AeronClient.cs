@@ -14,7 +14,7 @@ using Adaptive.Aeron.LogBuffer;
 using Adaptive.Agrona;
 using Adaptive.Agrona.Concurrent;
 using Aeron.MediaDriver.Native;
-using log4net;
+using ZeroLog;
 using ProtoBuf;
 
 namespace Aeron.MediaDriver
@@ -23,7 +23,7 @@ namespace Aeron.MediaDriver
 
     public class AeronClient : IDisposable
     {
-        private static readonly ILog _log = LogManager.GetLogger(typeof(AeronClient));
+        private static readonly Log _log = LogManager.GetLogger(typeof(AeronClient));
 
         private static readonly object _clientsLock = new object();
 
@@ -106,7 +106,7 @@ namespace Aeron.MediaDriver
                 onDisconnectedDelegate, onMessageReceived);
             var connectionId = AddSession(session);
 
-            _log.Info($"Connecting: {session}");
+            _log.Info($"Connecting: {session.ToString()}");
 
             var handshakeRequest = new AeronHandshakeRequest
             {
@@ -245,7 +245,7 @@ namespace Aeron.MediaDriver
             if (session == null)
                 return;
 
-            _log.Info($"Disconnecting: {session}");
+            _log.Info($"Disconnecting: {session.ToString()}");
 
             if (sendNotification)
             {
@@ -638,7 +638,7 @@ namespace Aeron.MediaDriver
 
                         if (stopwatch.ElapsedMilliseconds > connectionResponseTimeoutMs)
                         {
-                            _log.Error($"Failed to send handshake (not connected): {this}");
+                            _log.Error($"Failed to send handshake (not connected): {this.ToString()}");
                             return false;
                         }
 
@@ -657,7 +657,7 @@ namespace Aeron.MediaDriver
                         continue;
                     }
 
-                    _log.Error($"Failed to send handshake: {this}");
+                    _log.Error($"Failed to send handshake: {this.ToString()}");
                     return false;
                 }
 
@@ -696,7 +696,7 @@ namespace Aeron.MediaDriver
                 if (reservedValue.ProtocolVersion != AeronUtils.CurrentProtocolVersion)
                 {
                     _log.Error(
-                        $"Received message with unsupported protocol version: {reservedValue.ProtocolVersion} from {this}, ignoring");
+                        $"Received message with unsupported protocol version: {reservedValue.ProtocolVersion} from {this.ToString()}, ignoring");
                     return;
                 }
 
